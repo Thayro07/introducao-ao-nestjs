@@ -1,0 +1,16 @@
+# etapa 01: definir a imagem 
+FROM node:20-alpine  
+# etapa 02: definir o diretorio de trabalho do container 
+WORKDIR /app 
+# etapa 03: copiar arquivos de dependencia e instalar 
+COPY package.json /.
+COPY package-lock.json /.
+# COPY package*.json /.
+RUN npm install
+# etapa 04: copiar o restante dos arquivos da aplicacao
+COPY . .
+RUN npx prisma generate
+RUN npm run build
+# etapa 05: definir a porta que o container vai expor
+EXPOSE 3000
+# etapa 06: definir o comando que o container vai executar
