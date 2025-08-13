@@ -51,7 +51,7 @@ describe("UsersService", () => {
         expect(result).toEqual(users); // Verifica se o resultado é igual ao esperado
         expect(mockPrisma.user.findMany).toHaveBeenCalled(); // Verifica se o método foi chamado
     })
-    
+
     // 3. Testa a busca de usuário por ID
     it("deve encontrar um usuário pelo id", async () => {
         const user = { id: '550e8400-e29b-41d4-a716-446655440000', name: "thayro", email: "naochorexs@gmail.com", };
@@ -101,21 +101,16 @@ describe("UsersService", () => {
         expect(mockPrisma.user.delete).toHaveBeenCalledWith({
             where: { id: '550e8400-e29b-41d4-a716-446655440000' },
         })
-    
-    
-})
-    
+
+
     })
 
+})
 
 
 
 
-
-
-
-
-                // Não choresxs
+// Não choresxs
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣴⣶⣶⣾⣿⣿⣿⣿⣿⣷⣶⣶⣦⣤⣄⣀⡀⠀⠀⠀⠀⠀
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣿⣿⣿⣿⠿⣟⣛⣻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⡀⠀⠀
 // ⠀⠀⠀⠀⢰⠶⣶⣶⣶⣦⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠟⠋⠉⡇⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠋⠉⠀⠀⠀
