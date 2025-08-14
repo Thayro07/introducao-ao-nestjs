@@ -1,84 +1,76 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { Place } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { ImageObject } from './types/image-object';
+import { Test, TestingModule } from '@nestjs/testing';
+import { PlaceController } from './place.controller';
+import { PlaceService } from './place.service';
 import { CloudinaryService } from './cloudinary.service';
+import { buffer, find } from 'rxjs';
+import { Place, placeType } from '@prisma/client';
+import { create } from 'domain';
 
+describe('PlaceController', () => {
+    let controller: PlaceController;
+    let placeService: jest.Mocked<PlaceService>;
+    let cloudinaryService: jest.Mocked<CloudinaryService>;
 
-@Injectable()
-export class PlaceService {
-  constructor(
-    private prisma: PrismaService,
-    private cloudinaryService: CloudinaryService,
-  ) { }
+    beforeEach(async () => {
+        const mockPlaceService = {
+            findAll: jest.fn(),
+            findPaginated: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+        } as any
 
-  async findAll() {
-    return this.prisma.place.findMany();
-  }
-async findPaginated(page: number, limit: number) {
-        const [places, total] = await Promise.all([
-            this.prisma.place.findMany({
-                skip: (page - 1) * limit,
-                take: limit,
-            }),
-            this.prisma.place.count()
-        ]);
+        const mockCloudinaryService = {
+            uploadImage: jest.fn(),
+            deleteImage: jest.fn(),
+        } as any
 
-        return {
-            data: places,
-            total,
-            page,
-            last_page: Math.ceil(total / limit)
-        };
-    }
+        const module: TestingModule = await Test.createTestingModule({
+            controllers: [PlaceController],
+            providers: [
+                { provide: PlaceService, useValue: mockPlaceService },
+                { provide: CloudinaryService, useValue: mockCloudinaryService },
+            ],
+        }).compile();
 
-  async create(data: { name: string, type: any, phone: string, latitude: number, longitude: number, images: ImageObject[] }) {
-     {
-  return this.prisma.place.create({
-    data: {
-      name: data.name,
-      type: data.type,
-      phone: data.phone,
-      latitude: typeof data.latitude === 'string' ? parseFloat(data.latitude) : data.latitude,
-      longitude: typeof data.longitude === 'string' ? parseFloat(data.longitude) : data.longitude,
-      images: data.images,
-    }});
-}
-  }
-
-  async update(id: string, data: Partial<Place>, newImages?: Buffer[]): Promise<Place> {
-    const place = await this.prisma.place.findUnique({ where: { id } });
-    if (!place) throw new BadRequestException('Local não encontrado');
-
-    let images = place.images as ImageObject[];
-    
-    // Se forem enviadas novas imagens
-    if (newImages && newImages.length > 0) {
-      // Deletar imagens antigas
-      await Promise.all(images.map(img => this.cloudinaryService.deleteImage(img.public_id)));
-      // Upload das novas imagens
-      images = await Promise.all(newImages.map(file => this.cloudinaryService.uploadImage(file)));
-    }
-
-    return this.prisma.place.update({
-      where: { id },
-      data: {
-        ...data,
-        ...(newImages ? { images: JSON.parse(JSON.stringify(images)) } : {}),
-      },
+        controller = module.get<PlaceController>(PlaceController);
+        placeService = module.get(PlaceService);
+        cloudinaryService = module.get(CloudinaryService);
     });
-  }
 
-  async delete(id: string): Promise<void> {
-    const place = await this.prisma.place.findUnique({ where: { id } });
-    if (!place) throw new BadRequestException('Local não encontrado');
-    const images = place.images as ImageObject[];
-    await Promise.all(images.map(img => this.cloudinaryService.deleteImage(img.public_id)));
-    await this.prisma.place.delete({ where: { id } });
-  }
+    it("deve listar todos os lugares", async () => {
+        const result: Place[] = [
+            {
+                id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+                name: 'Real Lanches',
+                phone: '88999992222',
+                type: placeType.RESTAURANTE,
+                latitude: -23.55052,
+                longitude: -46.633308,
+                images:
+                    ['https://www.google.com/search?sca_esv=bbe24cb31649d4ed&sxsrf=AE3TifNDd3PMQP1hFk3TOUNoJUmT2Bfp8g:1755190839685&udm=2&fbs=AIIjpHxX5k-tONtMCu8aDeA7E5WMlVZjGnBiGIxaghLPqA-PlfgbLKUxiHcJwD8uXnH2piRJ050j0vn26_9l7bhJ4n7QPV-WlaFzA5vaGqRErzXXl-hAEqPG1IUtttCfgvMJG_hYbXMb50KemBeGNQv-kk32JWlgMuElh7afUv4sICSVekLQVK0WB9teW6hWMHsi2elsmORn0k6aiXY6EUk0BTALmUPKBw&q=lanchonete&sa=X&ved=2ahUKEwjcwoy044qPAxU-qJUCHUAXCAAQtKgLegQIGhAB&biw=1707&bih=862&dpr=1.13#vhid=KKNQTIWQgp1-4M&vssid=mosaic'],
+                createdAt: new Date()
+            },
+            {
+                id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
+                name: 'Baron',
+                phone: '88999992223',
+                type: placeType.RESTAURANTE,
+                latitude: -23.55152,
+                longitude: -46.634308,
+                images:
+                    ['https://www.google.com/search?sca_esv=bbe24cb31649d4ed&sxsrf=AE3TifNDd3PMQP1hFk3TOUNoJUmT2Bfp8g:1755190839685&udm=2&fbs=AIIjpHxX5k-tONtMCu8aDeA7E5WMlVZjGnBiGIxaghLPqA-PlfgbLKUxiHcJwD8uXnH2piRJ050j0vn26_9l7bhJ4n7QPV-WlaFzA5vaGqRErzXXl-hAEqPG1IUtttCfgvMJG_hYbXMb50KemBeGNQv-kk32JWlgMuElh7afUv4sICSVekLQVK0WB9teW6hWMHsi2elsmORn0k6aiXY6EUk0BTALmUPKBw&q=lanchonete&sa=X&ved=2ahUKEwjcwoy044qPAxU-qJUCHUAXCAAQtKgLegQIGhAB&biw=1707&bih=862&dpr=1.13#vhid=pHdKlVP6JbCZqM&vssid=mosaic'],
+                createdAt: new Date()
+            }
+        ];
+        placeService.findAll.mockResolvedValue(result);
 
-}
+        expect(await controller.findAll()).toBe(result);
+        expect(placeService.findAll).toHaveBeenCalled();
+    })
+});
 
+// Não choresxs
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣴⣶⣶⣾⣿⣿⣿⣿⣿⣷⣶⣶⣦⣤⣄⣀⡀⠀⠀⠀⠀⠀
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣿⣿⣿⣿⠿⣟⣛⣻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⡀⠀⠀
 // ⠀⠀⠀⠀⢰⠶⣶⣶⣶⣦⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠟⠋⠉⡇⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⠋⠉⠀⠀⠀
@@ -109,3 +101,5 @@ async findPaginated(page: number, limit: number) {
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣄⣿⣿⣿⣧⠀⢻⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣿⣇⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠻⢿⣿⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+
+// Made with love by Thayr (:
